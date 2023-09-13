@@ -45,7 +45,7 @@ export default defineComponent({
   },
   async mounted() {
     if (this.author === undefined) {
-      throw new Error(`The author property is required for the AllEncryptedContentByAuthor element`);
+      throw new Error(`The author property is required for the AllEncryptedContent element`);
     }
 
     await this.fetchEncryptedContent();

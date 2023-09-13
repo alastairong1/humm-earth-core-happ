@@ -13,4 +13,6 @@ holochain_integrity_types = { workspace = true }
 
 serde = { workspace = true }
 
+time_indexing = { workspace = true } 
+zome_utils.workspace = true
 content_integrity = { workspace = true } 

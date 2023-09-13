@@ -1,10 +1,31 @@
 use hdi::prelude::*;
+
 #[hdk_entry_helper]
 #[derive(Clone, PartialEq)]
 pub struct EncryptedContent {
-    pub id: String,
-    pub content_type: String,
+    pub header: EncryptedContentHeader,
+    pub bytes: SerializedBytes,
+    pub acl: Acl,
 }
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct EncryptedContentHeader {
+    pub id: String,
+    pub hive_id: String,
+    pub content_type: String,
+    // add hash?
+    // add signature?
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct Acl {
+    admin: Vec<String>,
+    write: Vec<String>,
+    read: Vec<String>,
+}
+
 pub fn validate_create_encrypted_content(
     _action: EntryCreationAction,
     _encrypted_content: EncryptedContent,
@@ -72,7 +93,7 @@ pub fn validate_delete_link_encrypted_content_updates(
         "EncryptedContentUpdates links cannot be deleted",
     )))
 }
-pub fn validate_create_link_all_encrypted_content_by_author(
+pub fn validate_create_link_all_encrypted_content(
     _action: CreateLink,
     _base_address: AnyLinkableHash,
     target_address: AnyLinkableHash,
@@ -96,7 +117,7 @@ pub fn validate_create_link_all_encrypted_content_by_author(
     // TODO: add the appropriate validation rules
     Ok(ValidateCallbackResult::Valid)
 }
-pub fn validate_delete_link_all_encrypted_content_by_author(
+pub fn validate_delete_link_all_encrypted_content(
     _action: DeleteLink,
     _original_action: CreateLink,
     _base: AnyLinkableHash,
@@ -104,6 +125,6 @@ pub fn validate_delete_link_all_encrypted_content_by_author(
     _tag: LinkTag,
 ) -> ExternResult<ValidateCallbackResult> {
     Ok(ValidateCallbackResult::Invalid(String::from(
-        "AllEncryptedContentByAuthor links cannot be deleted",
+        "AllEncryptedContent links cannot be deleted",
     )))
 }
