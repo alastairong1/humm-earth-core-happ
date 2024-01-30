@@ -1,10 +1,10 @@
 pub mod all_encrypted_content;
 pub mod encrypted_content;
-pub mod indexing;
+pub mod linking;
 
 use content_integrity::*;
 use hdk::prelude::*;
-pub use indexing::*;
+pub use linking::*;
 #[hdk_extern]
 pub fn init(_: ()) -> ExternResult<InitCallbackResult> {
     Ok(InitCallbackResult::Pass)

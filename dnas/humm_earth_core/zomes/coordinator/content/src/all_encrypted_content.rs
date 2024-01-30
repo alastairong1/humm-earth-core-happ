@@ -5,7 +5,7 @@ use hdk::{hash_path::path::Component, prelude::*};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetAllEncryptedContentAndContentTypeInput {
-    pub author: AgentPubKey,
+    pub author: String,
     pub content_type: String,
 }
 
@@ -24,11 +24,7 @@ pub fn get_all_encrypted_content_by_author_and_content_type(
         Component::from(input.content_type),
     ]);
 
-    let links = get_links(
-        path.path_entry_hash()?,
-        LinkTypes::AllEncryptedContent,
-        None,
-    )?;
+    let links = get_links(path.path_entry_hash()?, LinkTypes::HummContentOwner, None)?;
     let get_input: Vec<GetInput> = links
         .into_iter()
         .map(|link| {
@@ -56,11 +52,7 @@ pub fn get_all_encrypted_content_by_hive_and_content_type(
         Component::from(input.hive_id),
         Component::from(input.content_type),
     ]);
-    let links = get_links(
-        path.path_entry_hash()?,
-        LinkTypes::AllEncryptedContent,
-        None,
-    )?;
+    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
     let get_input: Vec<GetInput> = links
         .into_iter()
         .map(|link| {

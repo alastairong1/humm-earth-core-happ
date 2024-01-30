@@ -14,10 +14,15 @@ pub enum EntryTypes {
 #[hdk_link_types]
 pub enum LinkTypes {
     EncryptedContentUpdates,
-    AllEncryptedContent,
-    EncryptedContentTimePath,
+    TimePath,
     TimeItem,
-    DynamicLink,
+    Hive,
+    Dynamic,
+    HummContentId, // TODO
+    HummContentOwner,
+    HummContentAdmin,
+    HummContentWriter,
+    HummContentReader,
 }
 #[hdk_extern]
 pub fn genesis_self_check(_data: GenesisSelfCheckData) -> ExternResult<ValidateCallbackResult> {
@@ -100,18 +105,24 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 target_address,
                 tag,
             ),
-            LinkTypes::AllEncryptedContent => validate_create_link_all_encrypted_content(
-                action,
-                base_address,
-                target_address,
-                tag,
-            ),
             // TODO
-            LinkTypes::EncryptedContentTimePath => Ok(ValidateCallbackResult::Valid),
+            LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentWriter => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentReader => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::Hive => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentId => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::TimePath => Ok(ValidateCallbackResult::Valid),
             // TODO
             LinkTypes::TimeItem => Ok(ValidateCallbackResult::Valid),
             // TODO
-            LinkTypes::DynamicLink => Ok(ValidateCallbackResult::Valid),
+            LinkTypes::Dynamic => Ok(ValidateCallbackResult::Valid),
         },
         FlatOp::RegisterDeleteLink {
             link_type,
@@ -128,21 +139,24 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 target_address,
                 tag,
             ),
-            LinkTypes::AllEncryptedContent => validate_delete_link_all_encrypted_content(
-                action,
-                original_action,
-                base_address,
-                target_address,
-                tag,
-            ),
-
             // TODO
-            LinkTypes::EncryptedContentTimePath => Ok(ValidateCallbackResult::Valid),
-
+            LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentWriter => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentReader => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::Hive => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::HummContentId => Ok(ValidateCallbackResult::Valid),
+            // TODO
+            LinkTypes::TimePath => Ok(ValidateCallbackResult::Valid),
             // TODO
             LinkTypes::TimeItem => Ok(ValidateCallbackResult::Valid),
             // TODO
-            LinkTypes::DynamicLink => Ok(ValidateCallbackResult::Valid),
+            LinkTypes::Dynamic => Ok(ValidateCallbackResult::Valid),
         },
         FlatOp::StoreRecord(store_record) => match store_record {
             OpRecord::CreateEntry { app_entry, action } => match app_entry {
@@ -284,18 +298,24 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         tag,
                     )
                 }
-                LinkTypes::AllEncryptedContent => validate_create_link_all_encrypted_content(
-                    action,
-                    base_address,
-                    target_address,
-                    tag,
-                ),
                 // TODO
-                LinkTypes::EncryptedContentTimePath => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::HummContentWriter => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::HummContentReader => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::Hive => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::HummContentId => Ok(ValidateCallbackResult::Valid),
+                // TODO
+                LinkTypes::TimePath => Ok(ValidateCallbackResult::Valid),
                 // TODO
                 LinkTypes::TimeItem => Ok(ValidateCallbackResult::Valid),
                 // TODO
-                LinkTypes::DynamicLink => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::Dynamic => Ok(ValidateCallbackResult::Valid),
             },
             OpRecord::DeleteLink {
                 original_action_hash,
@@ -330,19 +350,24 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             create_link.tag,
                         )
                     }
-                    LinkTypes::AllEncryptedContent => validate_delete_link_all_encrypted_content(
-                        action,
-                        create_link.clone(),
-                        base_address,
-                        create_link.target_address,
-                        create_link.tag,
-                    ),
                     // TODO
-                    LinkTypes::EncryptedContentTimePath => Ok(ValidateCallbackResult::Valid),
+                    LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::HummContentWriter => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::HummContentReader => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::Hive => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::HummContentId => Ok(ValidateCallbackResult::Valid),
+                    // TODO
+                    LinkTypes::TimePath => Ok(ValidateCallbackResult::Valid),
                     // TODO
                     LinkTypes::TimeItem => Ok(ValidateCallbackResult::Valid),
                     // TODO
-                    LinkTypes::DynamicLink => Ok(ValidateCallbackResult::Valid),
+                    LinkTypes::Dynamic => Ok(ValidateCallbackResult::Valid),
                 }
             }
             OpRecord::CreatePrivateEntry { .. } => Ok(ValidateCallbackResult::Valid),

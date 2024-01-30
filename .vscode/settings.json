@@ -1,0 +1,5 @@
+{
+  "rust-analyzer.linkedProjects": [
+    "./dnas/humm_earth_core/zomes/coordinator/content/Cargo.toml"
+  ]
+}

@@ -2,7 +2,11 @@ use content_integrity::*;
 use hdk::{hash_path::path::Component, prelude::*};
 use zome_utils::*;
 
-use crate::indexing::*;
+use crate::{
+    dynamic_links::create_dynamic_links, hive_link::create_hive_link,
+    humm_content_id_link::create_humm_content_id_link, linking::acl_links::create_acl_links,
+    time_indexed_links::*,
+};
 
 #[hdk_entry_helper]
 #[derive(Clone, PartialEq)]
@@ -11,7 +15,9 @@ pub struct CreateEncryptedContentInput {
     pub hive_id: String,
     pub content_type: String,
     pub bytes: SerializedBytes,
-    pub acl: Acl,
+    pub entity_acl: EntityAcl,
+    pub public_key_acl: PublicKeyAcl,
+    pub dynamic_links: Option<Vec<String>>,
 }
 
 #[hdk_extern]
@@ -21,51 +27,52 @@ pub fn create_encrypted_content(input: CreateEncryptedContentInput) -> ExternRes
             id: input.id,
             hive_id: input.hive_id,
             content_type: input.content_type,
+            entity_acl: input.entity_acl,
+            public_key_acl: input.public_key_acl,
         },
         bytes: input.bytes,
-        acl: input.acl,
     };
-    let encrypted_content_hash =
-        create_entry(&EntryTypes::EncryptedContent(encrypted_content.clone()))?;
-    let record = get(encrypted_content_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
+    let action_hash = create_entry(&EntryTypes::EncryptedContent(encrypted_content.clone()))?;
+    let record = get(action_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
         WasmErrorInner::Guest(String::from(
             "Could not find the newly created EncryptedContent"
         ))
     ))?;
-    let my_agent_pub_key = agent_info()?.agent_latest_pubkey;
-    // let link_tag = LinkTag::new(String::from(encrypted_content.content_type.clone()));
-    let author_path = Path::from(vec![
-        Component::from(my_agent_pub_key.to_string()),
-        Component::from(encrypted_content.header.content_type.clone()),
-    ]);
-    let hive_path = Path::from(vec![
-        Component::from(encrypted_content.header.hive_id),
-        Component::from(encrypted_content.header.content_type.clone()),
-    ]);
-    create_link(
-        author_path.path_entry_hash()?,
-        encrypted_content_hash.clone(),
-        LinkTypes::AllEncryptedContent,
-        (),
-    )?;
-    create_link(
-        hive_path.path_entry_hash()?,
-        encrypted_content_hash.clone(),
-        LinkTypes::AllEncryptedContent,
-        (),
-    )?;
 
-    let time = get(encrypted_content_hash.clone(), GetOptions::content())?
-        .unwrap()
-        .action()
-        .timestamp();
-    let index = index_encrypted_content(
-        encrypted_content_hash.clone(),
-        &encrypted_content.header.content_type,
-        time,
-    );
+    // author links
+    let res = create_acl_links(encrypted_content.clone(), action_hash.clone());
+    if let Err(e) = res {
+        return Err(e);
+    }
 
-    if let Err(e) = index {
+    // hive link
+    let res = create_hive_link(encrypted_content.clone(), action_hash.clone());
+    if let Err(e) = res {
+        return Err(e);
+    }
+
+    // content ID link
+    let res = create_humm_content_id_link(encrypted_content.clone(), action_hash.clone());
+    if let Err(e) = res {
+        return Err(e);
+    }
+
+    // dynamic links
+    if let Some(dynamic_links) = input.dynamic_links {
+        let res = create_dynamic_links(
+            encrypted_content.clone(),
+            action_hash.clone(),
+            dynamic_links,
+        );
+        if let Err(e) = res {
+            return Err(e);
+        }
+    }
+
+    // time indexing links
+    let time_index =
+        time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type);
+    if let Err(e) = time_index {
         return Err(e);
     }
 
@@ -126,6 +133,84 @@ pub fn get_encrypted_content_by_time_and_author(
         .filter_map(|x| x)
         .collect();
     get_many_encrypted_content(hashes)
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct GetByDynamicLinkInput {
+    pub hive_id: String,
+    pub content_type: String,
+    pub dynamic_link: String,
+}
+
+#[hdk_extern]
+pub fn get_by_dynamic_link(input: GetByDynamicLinkInput) -> ExternResult<Record> {
+    let path = Path::from(vec![
+        Component::from(input.hive_id),
+        Component::from(input.content_type),
+        Component::from(input.dynamic_link.clone()),
+    ]);
+
+    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
+    if links.is_empty() {
+        return Err(wasm_error!(WasmErrorInner::Guest(format!(
+            "Could not find the EncryptedContent at dynamic link {0}",
+            input.dynamic_link
+        ))));
+    }
+    let ah = links[0]
+        .clone()
+        .target
+        .into_action_hash()
+        .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
+            "No action hash associated with link"
+        ))))?;
+    let record =
+        get(ah, GetOptions::default())?.ok_or(wasm_error!(WasmErrorInner::Guest(format!(
+            "Could not find the EncryptedContent at dynamic link {0}",
+            input.dynamic_link
+        ))))?;
+    Ok(record)
+}
+
+#[hdk_extern]
+pub fn list_by_dynamic_link(input: GetByDynamicLinkInput) -> ExternResult<Vec<Record>> {
+    let path = Path::from(vec![
+        Component::from(input.hive_id),
+        Component::from(input.content_type),
+        Component::from(input.dynamic_link.clone()),
+    ]);
+    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
+    let records: Vec<Record> = links
+        .into_iter()
+        .map(|link| {
+            let ah = link
+                .target
+                .into_action_hash()
+                .ok_or(wasm_error!(WasmErrorInner::Guest(String::from(
+                    "No action hash associated with link"
+                ))));
+
+            if let Err(e) = ah {
+                return Err(e);
+            }
+
+            let record = get(ah.unwrap(), GetOptions::default())?.ok_or(wasm_error!(
+                WasmErrorInner::Guest(format!(
+                    "Could not find the EncryptedContent at dynamic link {0}",
+                    input.dynamic_link
+                ))
+            ));
+
+            if let Err(e) = record {
+                return Err(e);
+            }
+
+            record
+        })
+        .filter_map(|x| x.ok())
+        .collect();
+
+    Ok(records)
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -4,22 +4,22 @@ use content_integrity::*;
 use hdk::{hash_path::path::Component, prelude::*};
 use time_indexing::*;
 
-pub fn index_encrypted_content(
-    ah: ActionHash,
-    content_type: &str,
-    index_time: Timestamp,
-) -> ExternResult<TypedPath> {
+pub fn time_index_encrypted_content(ah: ActionHash, content_type: &str) -> ExternResult<TypedPath> {
     let agent_info = agent_info()?;
+    let time = get(ah.clone(), GetOptions::content())?
+        .unwrap()
+        .action()
+        .timestamp();
     let path = Path::from(vec![
         Component::from(ENCRYPTED_CONTENT_TIME_INDEX),
         Component::from(agent_info.agent_latest_pubkey.to_string()), // TODO: how to handle agent public key changes?
     ]);
     let index = index_item(
-        path.typed(LinkTypes::EncryptedContentTimePath)?,
+        path.typed(LinkTypes::TimePath)?,
         ah.clone().into(),
         content_type,
         LinkTypes::TimeItem.try_into().unwrap(),
-        index_time,
+        time,
         &vec![], // todo: what is this used for? a vec of u8s
     )?;
 
@@ -38,7 +38,7 @@ pub fn index_encrypted_content(
 //         Component::from(agent_info.agent_latest_pubkey.to_string()), // TODO: how to handle agent public key changes?
 //     ]);
 //     let index = index_item(
-//         path.typed(LinkTypes::EncryptedContentTimePath)?,
+//         path.typed(LinkTypes::TimePath)?,
 //         ah.clone().into(),
 //         content_type,
 //         LinkTypes::TimeItem.try_into().unwrap(),
@@ -67,7 +67,7 @@ pub fn get_encrypted_content_time_index_links(
         Component::from(author.to_string()),
     ]);
     let response = get_latest_time_indexed_links(
-        path.typed(LinkTypes::EncryptedContentTimePath)?,
+        path.typed(LinkTypes::TimePath)?,
         sweep_interval,
         limit,
         Some(tag),

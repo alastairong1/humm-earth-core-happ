@@ -5,7 +5,6 @@ use hdi::prelude::*;
 pub struct EncryptedContent {
     pub header: EncryptedContentHeader,
     pub bytes: SerializedBytes,
-    pub acl: Acl,
 }
 
 #[hdk_entry_helper]
@@ -14,16 +13,36 @@ pub struct EncryptedContentHeader {
     pub id: String,
     pub hive_id: String,
     pub content_type: String,
+    pub entity_acl: EntityAcl,
+    pub public_key_acl: PublicKeyAcl,
+    // revisionauthor
     // add hash?
     // add signature?
 }
 
 #[hdk_entry_helper]
 #[derive(Clone, PartialEq)]
-pub struct Acl {
-    admin: Vec<String>,
-    write: Vec<String>,
-    read: Vec<String>,
+pub struct EntityAcl {
+    pub owner: EntityAclEntry,
+    pub admin: Vec<EntityAclEntry>,
+    pub writer: Vec<EntityAclEntry>,
+    pub reader: Vec<EntityAclEntry>,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct EntityAclEntry {
+    pub id: String,
+    pub entity_type: String,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct PublicKeyAcl {
+    pub owner: String,
+    pub admin: Vec<String>,
+    pub writer: Vec<String>,
+    pub reader: Vec<String>,
 }
 
 pub fn validate_create_encrypted_content(
