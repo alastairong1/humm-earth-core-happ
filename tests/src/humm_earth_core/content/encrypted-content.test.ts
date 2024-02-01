@@ -1,23 +1,39 @@
-import { assert, test } from "vitest";
+import { assert, expect, test } from "vitest";
 
-import { runScenario, pause, CallableCell } from '@holochain/tryorama';
-import { NewEntryAction, ActionHash, Record, AppBundleSource, fakeDnaHash, fakeActionHash, fakeAgentPubKey, fakeEntryHash } from '@holochain/client';
-import { decode } from '@msgpack/msgpack';
+import { runScenario, pause, CallableCell } from "@holochain/tryorama";
+import {
+  NewEntryAction,
+  ActionHash,
+  Record,
+  AppBundleSource,
+  fakeDnaHash,
+  fakeActionHash,
+  fakeAgentPubKey,
+  fakeEntryHash,
+} from "@holochain/client";
+import { decode } from "@msgpack/msgpack";
 
-import { createEncryptedContent, sampleEncryptedContent } from './common.js';
+import {
+  createEncryptedContent,
+  sampleCreateEncryptedContentInput,
+  sampleEncryptedContent,
+} from "./common.js";
 
-test('create EncryptedContent', async () => {
-  await runScenario(async scenario => {
+test("create EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
     // Construct proper paths for your app.
     // This assumes app bundle created by the `hc app pack` command.
-    const testAppPath = process.cwd() + '/../workdir/humm-earth-core-happ.happ';
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-    // Set up the app to be installed 
+    // Set up the app to be installed
     const appSource = { appBundleSource: { path: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
-    const [alice, bob] = await scenario.addPlayersWithApps([appSource, appSource]);
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
     // Shortcut peer discovery through gossip and register all agents in every
     // conductor of the scenario.
@@ -29,27 +45,37 @@ test('create EncryptedContent', async () => {
   });
 });
 
-test('create and read EncryptedContent', async () => {
-  await runScenario(async scenario => {
+test("create and read EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
     // Construct proper paths for your app.
     // This assumes app bundle created by the `hc app pack` command.
-    const testAppPath = process.cwd() + '/../workdir/humm-earth-core-happ.happ';
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-    // Set up the app to be installed 
+    // Set up the app to be installed
     const appSource = { appBundleSource: { path: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
-    const [alice, bob] = await scenario.addPlayersWithApps([appSource, appSource]);
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
     // Shortcut peer discovery through gossip and register all agents in every
     // conductor of the scenario.
     await scenario.shareAllAgents();
 
-    const sample = await sampleEncryptedContent(alice.cells[0]);
+    const sampleContent = sampleEncryptedContent();
+    const sampleInput = await sampleCreateEncryptedContentInput(
+      alice.cells[0],
+      sampleContent
+    );
 
     // Alice creates a EncryptedContent
-    const record: Record = await createEncryptedContent(alice.cells[0], sample);
+    const record: Record = await createEncryptedContent(
+      alice.cells[0],
+      sampleInput
+    );
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
@@ -61,22 +87,26 @@ test('create and read EncryptedContent', async () => {
       fn_name: "get_encrypted_content",
       payload: record.signed_action.hashed.hash,
     });
-    assert.deepEqual(sample, decode((createReadOutput.entry as any).Present.entry) as any);
+    console.log(createReadOutput);
+    assert.deepEqual(sampleContent, createReadOutput[2]);
   });
 });
 
-test('create and update EncryptedContent', async () => {
-  await runScenario(async scenario => {
+test("create and update EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
     // Construct proper paths for your app.
     // This assumes app bundle created by the `hc app pack` command.
-    const testAppPath = process.cwd() + '/../workdir/humm-earth-core-happ.happ';
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-    // Set up the app to be installed 
+    // Set up the app to be installed
     const appSource = { appBundleSource: { path: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
-    const [alice, bob] = await scenario.addPlayersWithApps([appSource, appSource]);
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
     // Shortcut peer discovery through gossip and register all agents in every
     // conductor of the scenario.
@@ -85,11 +115,13 @@ test('create and update EncryptedContent', async () => {
     // Alice creates a EncryptedContent
     const record: Record = await createEncryptedContent(alice.cells[0]);
     assert.ok(record);
-        
+
     const originalActionHash = record.signed_action.hashed.hash;
- 
+
     // Alice updates the EncryptedContent
-    let contentUpdate: any = await sampleEncryptedContent(alice.cells[0]);
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
     let updateInput = {
       original_encrypted_content_hash: originalActionHash,
       previous_encrypted_content_hash: originalActionHash,
@@ -105,21 +137,24 @@ test('create and update EncryptedContent', async () => {
 
     // Wait for the updated entry to be propagated to the other node.
     await pause(1200);
-        
+
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput0: Record = await bob.cells[0].callZome({
       zome_name: "content",
       fn_name: "get_encrypted_content",
       payload: updatedRecord.signed_action.hashed.hash,
     });
-    assert.deepEqual(contentUpdate, decode((readUpdatedOutput0.entry as any).Present.entry) as any);
+    assert.deepEqual(contentUpdate, readUpdatedOutput0[2]);
 
     // Alice updates the EncryptedContent again
-    contentUpdate = await sampleEncryptedContent(alice.cells[0]);
-    updateInput = { 
+    const contentUpdate2 = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-3"),
+    });
+
+    updateInput = {
       original_encrypted_content_hash: originalActionHash,
       previous_encrypted_content_hash: updatedRecord.signed_action.hashed.hash,
-      updated_encrypted_content: contentUpdate,
+      updated_encrypted_content: contentUpdate2,
     };
 
     updatedRecord = await alice.cells[0].callZome({
@@ -131,29 +166,32 @@ test('create and update EncryptedContent', async () => {
 
     // Wait for the updated entry to be propagated to the other node.
     await pause(1200);
-        
+
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput1: Record = await bob.cells[0].callZome({
       zome_name: "content",
       fn_name: "get_encrypted_content",
       payload: updatedRecord.signed_action.hashed.hash,
     });
-    assert.deepEqual(contentUpdate, decode((readUpdatedOutput1.entry as any).Present.entry) as any);
+    assert.deepEqual(contentUpdate2, readUpdatedOutput1[2]);
   });
 });
 
-test('create and delete EncryptedContent', async () => {
-  await runScenario(async scenario => {
+test("create and delete EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
     // Construct proper paths for your app.
     // This assumes app bundle created by the `hc app pack` command.
-    const testAppPath = process.cwd() + '/../workdir/humm-earth-core-happ.happ';
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-    // Set up the app to be installed 
+    // Set up the app to be installed
     const appSource = { appBundleSource: { path: testAppPath } };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
-    const [alice, bob] = await scenario.addPlayersWithApps([appSource, appSource]);
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
     // Shortcut peer discovery through gossip and register all agents in every
     // conductor of the scenario.
@@ -162,7 +200,7 @@ test('create and delete EncryptedContent', async () => {
     // Alice creates a EncryptedContent
     const record: Record = await createEncryptedContent(alice.cells[0]);
     assert.ok(record);
-        
+
     // Alice deletes the EncryptedContent
     const deleteActionHash = await alice.cells[0].callZome({
       zome_name: "content",
@@ -173,13 +211,15 @@ test('create and delete EncryptedContent', async () => {
 
     // Wait for the entry deletion to be propagated to the other node.
     await pause(1200);
-        
+
     // Bob tries to get the deleted EncryptedContent
-    const readDeletedOutput = await bob.cells[0].callZome({
-      zome_name: "content",
-      fn_name: "get_encrypted_content",
-      payload: record.signed_action.hashed.hash,
-    });
-    assert.notOk(readDeletedOutput);
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.signed_action.hashed.hash,
+        })
+    ).rejects.toThrow();
   });
 });
