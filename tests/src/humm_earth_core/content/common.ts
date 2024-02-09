@@ -10,6 +10,30 @@ import {
   fakeDnaHash,
 } from "@holochain/client";
 
+export type EncryptedContentResponse = {
+  encrypted_content: any;
+  hash: ActionHash;
+};
+
+export enum AclRole {
+  Owner = "Owner",
+  Admin = "Admin",
+  Writer = "Writer",
+  Reader = "Reader",
+}
+
+export function sampleEntityAcl() {
+  return {
+    owner: {
+      id: "test-entity-acl-id",
+      entity_type: "test-entity-acl-type",
+    },
+    admin: [],
+    writer: [],
+    reader: [],
+  };
+}
+
 export function sampleEncryptedContent(partialEncryptedContent = {}) {
   return {
     bytes: Buffer.from("test-bytes"),
@@ -18,15 +42,7 @@ export function sampleEncryptedContent(partialEncryptedContent = {}) {
       id: "test-id",
       hive_id: "test-hive-id",
       content_type: "test-content-type",
-      entity_acl: {
-        owner: {
-          id: "test-entity-acl-id",
-          entity_type: "test-entity-acl-type",
-        },
-        admin: [],
-        writer: [],
-        reader: [],
-      },
+      entity_acl: sampleEntityAcl(),
       public_key_acl: {
         owner: "test-entity-acl-public-key",
         admin: [],
@@ -39,8 +55,8 @@ export function sampleEncryptedContent(partialEncryptedContent = {}) {
 }
 
 export async function sampleCreateEncryptedContentInput(
-  cell: CallableCell,
-  partialEncryptedContent = {}
+  partialEncryptedContent = {},
+  dynamicLinks = []
 ) {
   const sample = sampleEncryptedContent(partialEncryptedContent);
   return {
@@ -50,16 +66,16 @@ export async function sampleCreateEncryptedContentInput(
     bytes: sample.bytes,
     entity_acl: sample.header.entity_acl,
     public_key_acl: sample.header.public_key_acl,
-    dynamic_links: [],
+    dynamic_links: dynamicLinks,
   };
 }
 
 export async function createEncryptedContent(
   cell: CallableCell,
-  encryptedContent = undefined
-): Promise<Record> {
+  createEncryptedContentInput = undefined
+): Promise<EncryptedContentResponse> {
   const content =
-    encryptedContent || (await sampleCreateEncryptedContentInput(cell));
+    createEncryptedContentInput || (await sampleCreateEncryptedContentInput());
   return cell.callZome({
     zome_name: "content",
     fn_name: "create_encrypted_content",

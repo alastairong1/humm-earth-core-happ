@@ -27,8 +27,9 @@ pub fn create_acl_links(
 
     // owner
     let owner_path = Path::from(vec![
-        Component::from(owner.id.to_string()),
+        Component::from(encrypted_content.header.hive_id.clone()),
         Component::from(encrypted_content.header.content_type.clone()),
+        Component::from(owner.id.to_string()),
     ]);
 
     let owner_ah = create_link(
@@ -44,8 +45,9 @@ pub fn create_acl_links(
 
     admins.iter().for_each(|acl_entry| {
         let path = Path::from(vec![
-            Component::from(acl_entry.id.to_string()),
+            Component::from(encrypted_content.header.hive_id.clone()),
             Component::from(encrypted_content.header.content_type.clone()),
+            Component::from(acl_entry.id.to_string()),
         ]);
 
         let ah = create_link(
@@ -67,8 +69,9 @@ pub fn create_acl_links(
 
     writers.iter().for_each(|acl_entry| {
         let path = Path::from(vec![
-            Component::from(acl_entry.id.to_string()),
+            Component::from(encrypted_content.header.hive_id.clone()),
             Component::from(encrypted_content.header.content_type.clone()),
+            Component::from(acl_entry.id.to_string()),
         ]);
 
         let ah = create_link(
@@ -90,8 +93,9 @@ pub fn create_acl_links(
 
     readers.iter().for_each(|acl_entry| {
         let path = Path::from(vec![
-            Component::from(acl_entry.id.to_string()),
+            Component::from(encrypted_content.header.hive_id.clone()),
             Component::from(encrypted_content.header.content_type.clone()),
+            Component::from(acl_entry.id.to_string()),
         ]);
 
         let ah = create_link(

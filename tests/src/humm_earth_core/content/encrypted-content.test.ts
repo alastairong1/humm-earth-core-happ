@@ -14,6 +14,7 @@ import {
 import { decode } from "@msgpack/msgpack";
 
 import {
+  EncryptedContentResponse,
   createEncryptedContent,
   sampleCreateEncryptedContentInput,
   sampleEncryptedContent,
@@ -40,7 +41,7 @@ test("create EncryptedContent", async () => {
     await scenario.shareAllAgents();
 
     // Alice creates a EncryptedContent
-    const record: Record = await createEncryptedContent(alice.cells[0]);
+    const record = await createEncryptedContent(alice.cells[0]);
     assert.ok(record);
   });
 });
@@ -66,29 +67,23 @@ test("create and read EncryptedContent", async () => {
     await scenario.shareAllAgents();
 
     const sampleContent = sampleEncryptedContent();
-    const sampleInput = await sampleCreateEncryptedContentInput(
-      alice.cells[0],
-      sampleContent
-    );
+    const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
 
     // Alice creates a EncryptedContent
-    const record: Record = await createEncryptedContent(
-      alice.cells[0],
-      sampleInput
-    );
+    const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
     await pause(1200);
 
     // Bob gets the created EncryptedContent
-    const createReadOutput: Record = await bob.cells[0].callZome({
-      zome_name: "content",
-      fn_name: "get_encrypted_content",
-      payload: record.signed_action.hashed.hash,
-    });
-    console.log(createReadOutput);
-    assert.deepEqual(sampleContent, createReadOutput[2]);
+    const createReadOutput: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(sampleContent, createReadOutput.encrypted_content);
   });
 });
 
@@ -113,38 +108,40 @@ test("create and update EncryptedContent", async () => {
     await scenario.shareAllAgents();
 
     // Alice creates a EncryptedContent
-    const record: Record = await createEncryptedContent(alice.cells[0]);
+    const record = await createEncryptedContent(alice.cells[0]);
     assert.ok(record);
 
-    const originalActionHash = record.signed_action.hashed.hash;
+    const originalActionHash = record.hash;
 
     // Alice updates the EncryptedContent
     const contentUpdate = sampleEncryptedContent({
       bytes: Buffer.from("test-bytes-2"),
     });
     let updateInput = {
-      original_encrypted_content_hash: originalActionHash,
       previous_encrypted_content_hash: originalActionHash,
       updated_encrypted_content: contentUpdate,
     };
 
-    let updatedRecord: Record = await alice.cells[0].callZome({
-      zome_name: "content",
-      fn_name: "update_encrypted_content",
-      payload: updateInput,
-    });
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
     assert.ok(updatedRecord);
 
     // Wait for the updated entry to be propagated to the other node.
     await pause(1200);
 
     // Bob gets the updated EncryptedContent
-    const readUpdatedOutput0: Record = await bob.cells[0].callZome({
-      zome_name: "content",
-      fn_name: "get_encrypted_content",
-      payload: updatedRecord.signed_action.hashed.hash,
-    });
-    assert.deepEqual(contentUpdate, readUpdatedOutput0[2]);
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: originalActionHash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
 
     // Alice updates the EncryptedContent again
     const contentUpdate2 = sampleEncryptedContent({
@@ -152,8 +149,7 @@ test("create and update EncryptedContent", async () => {
     });
 
     updateInput = {
-      original_encrypted_content_hash: originalActionHash,
-      previous_encrypted_content_hash: updatedRecord.signed_action.hashed.hash,
+      previous_encrypted_content_hash: updatedRecord.hash,
       updated_encrypted_content: contentUpdate2,
     };
 
@@ -168,12 +164,13 @@ test("create and update EncryptedContent", async () => {
     await pause(1200);
 
     // Bob gets the updated EncryptedContent
-    const readUpdatedOutput1: Record = await bob.cells[0].callZome({
-      zome_name: "content",
-      fn_name: "get_encrypted_content",
-      payload: updatedRecord.signed_action.hashed.hash,
-    });
-    assert.deepEqual(contentUpdate2, readUpdatedOutput1[2]);
+    const readUpdatedOutput1: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: originalActionHash,
+      });
+    assert.deepEqual(contentUpdate2, readUpdatedOutput1.encrypted_content);
   });
 });
 
@@ -198,14 +195,14 @@ test("create and delete EncryptedContent", async () => {
     await scenario.shareAllAgents();
 
     // Alice creates a EncryptedContent
-    const record: Record = await createEncryptedContent(alice.cells[0]);
+    const record = await createEncryptedContent(alice.cells[0]);
     assert.ok(record);
 
     // Alice deletes the EncryptedContent
     const deleteActionHash = await alice.cells[0].callZome({
       zome_name: "content",
       fn_name: "delete_encrypted_content",
-      payload: record.signed_action.hashed.hash,
+      payload: record.hash,
     });
     assert.ok(deleteActionHash);
 
@@ -218,7 +215,181 @@ test("create and delete EncryptedContent", async () => {
         await bob.cells[0].callZome({
           zome_name: "content",
           fn_name: "get_encrypted_content",
-          payload: record.signed_action.hashed.hash,
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
+  });
+});
+
+test("create, update, and delete EncryptedContent using original hash", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
+
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
+
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
+
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
+
+    // Alice updates the EncryptedContent
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
+    let updateInput = {
+      previous_encrypted_content_hash: record.hash,
+      updated_encrypted_content: contentUpdate,
+    };
+
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
+    assert.ok(updatedRecord);
+
+    // Wait for the updated entry to be propagated to the other node.
+    await pause(1200);
+
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
+
+    // Alice deletes the EncryptedContent
+    const deleteActionHash = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "delete_encrypted_content",
+      payload: record.hash,
+    });
+    assert.ok(deleteActionHash);
+
+    // Wait for the entry deletion to be propagated to the other node.
+    await pause(1200);
+
+    // Bob tries to get the deleted EncryptedContent using the original hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
+
+    // Bob tries to get the deleted EncryptedContent using the updated hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: readUpdatedOutput0.hash,
+        })
+    ).rejects.toThrow();
+  });
+});
+
+test("create, update, and delete EncryptedContent using updated hash", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
+
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
+
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
+
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
+
+    // Alice updates the EncryptedContent
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
+    let updateInput = {
+      previous_encrypted_content_hash: record.hash,
+      updated_encrypted_content: contentUpdate,
+    };
+
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
+    assert.ok(updatedRecord);
+
+    // Wait for the updated entry to be propagated to the other node.
+    await pause(1200);
+
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
+
+    // Alice deletes the EncryptedContent
+    const deleteActionHash = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "delete_encrypted_content",
+      payload: readUpdatedOutput0.hash,
+    });
+    assert.ok(deleteActionHash);
+
+    // Wait for the entry deletion to be propagated to the other node.
+    await pause(1200);
+
+    // Bob tries to get the deleted EncryptedContent using the original hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
+
+    // Bob tries to get the deleted EncryptedContent using the updated hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: readUpdatedOutput0.hash,
         })
     ).rejects.toThrow();
   });

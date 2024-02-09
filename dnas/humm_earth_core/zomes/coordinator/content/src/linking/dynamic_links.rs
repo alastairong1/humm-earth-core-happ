@@ -6,7 +6,7 @@ pub fn create_dynamic_links(
     action_hash: ActionHash,
     dynamic_links: Vec<String>,
 ) -> ExternResult<Vec<ActionHash>> {
-    let my_agent_pub_key = agent_info()?.agent_latest_pubkey;
+    // let my_agent_pub_key = agent_info()?.agent_latest_pubkey;
 
     let mut ahs = vec![];
     dynamic_links.iter().for_each(|link| {
@@ -48,7 +48,7 @@ pub fn create_dynamic_links(
         let hive_ah_res = create_link(
             hive_path_entry_hash,
             action_hash.clone(),
-            LinkTypes::Hive,
+            LinkTypes::Dynamic,
             (),
         );
 

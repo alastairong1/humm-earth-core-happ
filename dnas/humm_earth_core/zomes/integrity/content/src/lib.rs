@@ -13,6 +13,7 @@ pub enum EntryTypes {
 #[derive(Serialize, Deserialize)]
 #[hdk_link_types]
 pub enum LinkTypes {
+    OriginalHashPointer,
     EncryptedContentUpdates,
     TimePath,
     TimeItem,
@@ -106,6 +107,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 tag,
             ),
             // TODO
+            LinkTypes::OriginalHashPointer => Ok(ValidateCallbackResult::Valid),
+            // TODO
             LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
             // TODO
             LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
@@ -139,6 +142,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 target_address,
                 tag,
             ),
+            // TODO
+            LinkTypes::OriginalHashPointer => Ok(ValidateCallbackResult::Valid),
             // TODO
             LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
             // TODO
@@ -299,6 +304,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                     )
                 }
                 // TODO
+                LinkTypes::OriginalHashPointer => Ok(ValidateCallbackResult::Valid),
+                // TODO
                 LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
                 // TODO
                 LinkTypes::HummContentAdmin => Ok(ValidateCallbackResult::Valid),
@@ -350,6 +357,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             create_link.tag,
                         )
                     }
+                    // TODO
+                    LinkTypes::OriginalHashPointer => Ok(ValidateCallbackResult::Valid),
                     // TODO
                     LinkTypes::HummContentOwner => Ok(ValidateCallbackResult::Valid),
                     // TODO
