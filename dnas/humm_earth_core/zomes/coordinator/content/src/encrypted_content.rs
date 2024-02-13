@@ -12,8 +12,8 @@ use crate::{
 #[derive(Clone, PartialEq)]
 pub struct EncryptedContentResponse {
     pub encrypted_content: EncryptedContent,
-    pub hash: ActionHash,
-    pub original_hash: ActionHash,
+    pub hash: String,
+    pub original_hash: String,
 }
 
 #[hdk_entry_helper]
@@ -36,7 +36,7 @@ pub fn create_encrypted_content(
         header: EncryptedContentHeader {
             id: input.id,
             hive_id: input.hive_id,
-            content_type: input.content_type,
+            content_type: input.content_type.clone(),
             entity_acl: input.entity_acl,
             public_key_acl: input.public_key_acl,
         },
@@ -57,47 +57,45 @@ pub fn create_encrypted_content(
         (),
     )?;
 
+    // create link to the author
+    let my_agent_pub_key = agent_info()?.agent_latest_pubkey;
+    debug!("My agent public key: {}", my_agent_pub_key.to_string());
+    let author_link_path = Path::from(vec![
+        Component::from(my_agent_pub_key.to_string()),
+        Component::from(input.content_type),
+    ]);
+    create_link(
+        author_link_path.path_entry_hash()?,
+        action_hash.clone(),
+        LinkTypes::Hive,
+        (),
+    )?;
+
     // author links
-    let res = create_acl_links(encrypted_content.clone(), action_hash.clone());
-    if let Err(e) = res {
-        return Err(e);
-    }
+    create_acl_links(encrypted_content.clone(), action_hash.clone())?;
 
     // hive link
-    let res = create_hive_link(encrypted_content.clone(), action_hash.clone());
-    if let Err(e) = res {
-        return Err(e);
-    }
+    create_hive_link(encrypted_content.clone(), action_hash.clone())?;
 
     // content ID link
-    let res = create_humm_content_id_link(encrypted_content.clone(), action_hash.clone());
-    if let Err(e) = res {
-        return Err(e);
-    }
+    create_humm_content_id_link(encrypted_content.clone(), action_hash.clone())?;
 
     // dynamic links
     if let Some(dynamic_links) = input.dynamic_links {
-        let res = create_dynamic_links(
+        create_dynamic_links(
             encrypted_content.clone(),
             action_hash.clone(),
             dynamic_links,
-        );
-        if let Err(e) = res {
-            return Err(e);
-        }
+        )?;
     }
 
     // time indexing links
-    let time_index =
-        time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type);
-    if let Err(e) = time_index {
-        return Err(e);
-    }
+    time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type)?;
 
     Ok(EncryptedContentResponse {
         encrypted_content,
-        hash: action_hash.clone(),
-        original_hash: action_hash,
+        hash: action_hash.clone().to_string(),
+        original_hash: action_hash.to_string(),
     })
 }
 
@@ -111,8 +109,8 @@ pub fn get_encrypted_content(content_hash: ActionHash) -> ExternResult<Encrypted
     };
     Ok(EncryptedContentResponse {
         encrypted_content: entry,
-        hash,
-        original_hash: content_hash,
+        hash: hash.to_string(),
+        original_hash: content_hash.to_string(),
     })
 }
 
@@ -267,6 +265,30 @@ pub fn list_by_acl_link(input: ListByAclInput) -> ExternResult<Vec<EncryptedCont
         .filter_map(|x| x)
         .collect();
     get_many_encrypted_content(hashes)
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListByAuthorInput {
+    pub author: String,
+    pub content_type: String,
+}
+#[hdk_extern]
+pub fn list_by_author(input: ListByAuthorInput) -> ExternResult<Vec<EncryptedContentResponse>> {
+    debug!("My agent public key 2: {}", input.author);
+    let path = Path::from(vec![
+        Component::from(input.author),
+        Component::from(input.content_type),
+    ]);
+
+    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
+    let hashes: Vec<ActionHash> = links
+        .into_iter()
+        .map(|link| link.target.into_action_hash())
+        .filter_map(|x| x)
+        .collect();
+    let a = get_many_encrypted_content(hashes);
+    debug!("hashes: {:?}", a);
+    a
 }
 
 #[derive(Serialize, Deserialize, Debug)]
