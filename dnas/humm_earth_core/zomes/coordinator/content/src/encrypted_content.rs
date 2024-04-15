@@ -22,9 +22,10 @@ pub struct CreateEncryptedContentInput {
     pub id: String,
     pub hive_id: String,
     pub content_type: String,
+    pub revision_author_signing_public_key: String,
     pub bytes: SerializedBytes,
-    pub entity_acl: EntityAcl,
-    pub public_key_acl: PublicKeyAcl,
+    pub acl: Acl,
+    pub public_key_acl: Acl,
     pub dynamic_links: Option<Vec<String>>,
 }
 
@@ -35,9 +36,10 @@ pub fn create_encrypted_content(
     let encrypted_content = EncryptedContent {
         header: EncryptedContentHeader {
             id: input.id,
-            hive_id: input.hive_id,
+            hive_id: input.hive_id.clone(),
             content_type: input.content_type.clone(),
-            entity_acl: input.entity_acl,
+            revision_author_signing_public_key: input.revision_author_signing_public_key,
+            acl: input.acl,
             public_key_acl: input.public_key_acl,
         },
         bytes: input.bytes,
@@ -59,7 +61,6 @@ pub fn create_encrypted_content(
 
     // create link to the author
     let my_agent_pub_key = agent_info()?.agent_latest_pubkey;
-    debug!("My agent public key: {}", my_agent_pub_key.to_string());
     let author_link_path = Path::from(vec![
         Component::from(my_agent_pub_key.to_string()),
         Component::from(input.content_type),
@@ -71,11 +72,13 @@ pub fn create_encrypted_content(
         (),
     )?;
 
-    // author links
+    // acl links
     create_acl_links(encrypted_content.clone(), action_hash.clone())?;
 
-    // hive link
-    create_hive_link(encrypted_content.clone(), action_hash.clone())?;
+    // hive link - ignore empty hive_id which is used by hive discovery entries
+    if input.hive_id != "" {
+        create_hive_link(encrypted_content.clone(), action_hash.clone())?;
+    }
 
     // content ID link
     create_humm_content_id_link(encrypted_content.clone(), action_hash.clone())?;
@@ -211,16 +214,24 @@ pub fn get_by_content_id_link(
     input: ListByContentIdInput,
 ) -> ExternResult<EncryptedContentResponse> {
     let path = Path::from(vec![
-        Component::from(input.hive_id),
-        Component::from(input.content_id),
+        Component::from(input.hive_id.clone()),
+        Component::from(input.content_id.clone()),
     ]);
 
     let links = get_links(path.path_entry_hash()?, LinkTypes::HummContentId, None)?;
+
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
         .filter_map(|x| x)
         .collect();
+
+    if hashes.len() == 0 {
+        return Err(wasm_error!(WasmErrorInner::Guest(format!(
+            "Could not find the content with id: \"{}\"",
+            input.content_id
+        ))));
+    }
     get_encrypted_content(hashes[0].clone())
 }
 
@@ -274,7 +285,6 @@ pub struct ListByAuthorInput {
 }
 #[hdk_extern]
 pub fn list_by_author(input: ListByAuthorInput) -> ExternResult<Vec<EncryptedContentResponse>> {
-    debug!("My agent public key 2: {}", input.author);
     let path = Path::from(vec![
         Component::from(input.author),
         Component::from(input.content_type),
@@ -287,7 +297,6 @@ pub fn list_by_author(input: ListByAuthorInput) -> ExternResult<Vec<EncryptedCon
         .filter_map(|x| x)
         .collect();
     let a = get_many_encrypted_content(hashes);
-    debug!("hashes: {:?}", a);
     a
 }
 

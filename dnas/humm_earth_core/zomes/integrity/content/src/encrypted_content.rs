@@ -13,8 +13,9 @@ pub struct EncryptedContentHeader {
     pub id: String,
     pub hive_id: String,
     pub content_type: String,
-    pub entity_acl: EntityAcl,
-    pub public_key_acl: PublicKeyAcl,
+    pub acl: Acl,
+    pub public_key_acl: Acl,
+    pub revision_author_signing_public_key: String,
     // revisionauthor
     // add hash?
     // add signature?
@@ -22,23 +23,7 @@ pub struct EncryptedContentHeader {
 
 #[hdk_entry_helper]
 #[derive(Clone, PartialEq)]
-pub struct EntityAcl {
-    pub owner: EntityAclEntry,
-    pub admin: Vec<EntityAclEntry>,
-    pub writer: Vec<EntityAclEntry>,
-    pub reader: Vec<EntityAclEntry>,
-}
-
-#[hdk_entry_helper]
-#[derive(Clone, PartialEq)]
-pub struct EntityAclEntry {
-    pub id: String,
-    pub entity_type: String,
-}
-
-#[hdk_entry_helper]
-#[derive(Clone, PartialEq)]
-pub struct PublicKeyAcl {
+pub struct Acl {
     pub owner: String,
     pub admin: Vec<String>,
     pub writer: Vec<String>,

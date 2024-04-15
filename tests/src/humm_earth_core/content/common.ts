@@ -22,7 +22,7 @@ export enum AclRole {
   Reader = "Reader",
 }
 
-export function sampleEntityAcl() {
+export function sampleAcl() {
   return {
     owner: {
       id: "test-entity-acl-id",
@@ -42,7 +42,7 @@ export function sampleEncryptedContent(partialEncryptedContent = {}) {
       id: "test-id",
       hive_id: "test-hive-id",
       content_type: "test-content-type",
-      entity_acl: sampleEntityAcl(),
+      acl: sampleAcl(),
       public_key_acl: {
         owner: "test-entity-acl-public-key",
         admin: [],
@@ -64,7 +64,7 @@ export async function sampleCreateEncryptedContentInput(
     hive_id: sample.header.hive_id,
     content_type: sample.header.content_type,
     bytes: sample.bytes,
-    entity_acl: sample.header.entity_acl,
+    acl: sample.header.acl,
     public_key_acl: sample.header.public_key_acl,
     dynamic_links: dynamicLinks,
   };

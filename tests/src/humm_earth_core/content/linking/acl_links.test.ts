@@ -55,7 +55,7 @@ test("create and read EncryptedContent using acl owner link", async () => {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Owner,
-      entity_id: sampleContent.header.entity_acl.owner.id,
+      entity_id: sampleContent.header.acl.owner.id,
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
@@ -90,7 +90,7 @@ test("create and read EncryptedContent using acl admin link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.entity_acl.admin.push({
+    sampleContent.header.acl.admin.push({
       id: "test-admin-id",
       entity_type: "test-entity-acl-type",
     });
@@ -106,7 +106,7 @@ test("create and read EncryptedContent using acl admin link", async () => {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Admin,
-      entity_id: sampleContent.header.entity_acl.admin[0].id,
+      entity_id: sampleContent.header.acl.admin[0].id,
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
@@ -142,7 +142,7 @@ test("create and read EncryptedContent using acl writer link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.entity_acl.writer.push({
+    sampleContent.header.acl.writer.push({
       id: "test-writer-id",
       entity_type: "test-entity-acl-type",
     });
@@ -158,7 +158,7 @@ test("create and read EncryptedContent using acl writer link", async () => {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Writer,
-      entity_id: sampleContent.header.entity_acl.writer[0].id,
+      entity_id: sampleContent.header.acl.writer[0].id,
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
@@ -194,7 +194,7 @@ test("create and read EncryptedContent using acl reader link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.entity_acl.reader.push({
+    sampleContent.header.acl.reader.push({
       id: "test-reader-id",
       entity_type: "test-entity-acl-type",
     });
@@ -210,7 +210,7 @@ test("create and read EncryptedContent using acl reader link", async () => {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Reader,
-      entity_id: sampleContent.header.entity_acl.reader[0].id,
+      entity_id: sampleContent.header.acl.reader[0].id,
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
