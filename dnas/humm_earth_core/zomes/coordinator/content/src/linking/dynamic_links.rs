@@ -1,5 +1,5 @@
 use content_integrity::{EncryptedContent, LinkTypes};
-use hdk::{hash_path::path::Component, prelude::*};
+use hdk::prelude::*;
 
 pub fn create_dynamic_links(
     encrypted_content: EncryptedContent,

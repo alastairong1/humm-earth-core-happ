@@ -1,5 +1,5 @@
 use content_integrity::{EncryptedContent, LinkTypes};
-use hdk::{hash_path::path::Component, prelude::*};
+use hdk::prelude::*;
 
 pub fn create_hive_link(
     encrypted_content: EncryptedContent,
