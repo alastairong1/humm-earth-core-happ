@@ -29,6 +29,21 @@ pub struct CreateEncryptedContentInput {
     pub dynamic_links: Option<Vec<String>>,
 }
 
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub struct EncryptedContentSignal {
+    pub action_type: EncryptedContentSignalType,
+    pub data: EncryptedContentResponse,
+}
+
+#[hdk_entry_helper]
+#[derive(Clone, PartialEq)]
+pub enum EncryptedContentSignalType {
+    Create,
+    Update,
+    Delete,
+}
+
 #[hdk_extern]
 pub fn create_encrypted_content(
     input: CreateEncryptedContentInput,
@@ -45,11 +60,18 @@ pub fn create_encrypted_content(
         bytes: input.bytes,
     };
     let action_hash = create_entry(&EntryTypes::EncryptedContent(encrypted_content.clone()))?;
-    // let record = get(action_hash.clone(), GetOptions::default())?.ok_or(wasm_error!(
-    //     WasmErrorInner::Guest(String::from(
-    //         "Could not find the newly created EncryptedContent"
-    //     ))
-    // ))?;
+    let response = EncryptedContentResponse {
+        encrypted_content: encrypted_content.clone(),
+        hash: action_hash.clone().to_string(),
+        original_hash: action_hash.to_string(),
+    };
+
+    // temp solution while waiting for pub/sub to be implemented. this will alert
+    // all agents in all hives for every entry created across the network
+    emit_signal(EncryptedContentSignal {
+        action_type: EncryptedContentSignalType::Create,
+        data: response.clone(),
+    })?;
 
     // create original hash pointer link pointing to itslef
     create_link(
@@ -95,11 +117,7 @@ pub fn create_encrypted_content(
     // time indexing links
     time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type)?;
 
-    Ok(EncryptedContentResponse {
-        encrypted_content,
-        hash: action_hash.clone().to_string(),
-        original_hash: action_hash.to_string(),
-    })
+    Ok(response)
 }
 
 #[hdk_extern]
@@ -115,6 +133,79 @@ pub fn get_encrypted_content(content_hash: ActionHash) -> ExternResult<Encrypted
         hash: hash.to_string(),
         original_hash: content_hash.to_string(),
     })
+}
+
+/// copied from https://github.com/ddd-mtl/zome-utils/blob/main/src/get.rs while
+/// waiting for the zome-utils to be updated for latest 0.2.7-beta
+pub fn get_eh(ah: ActionHash) -> ExternResult<EntryHash> {
+    trace!("ah_to_eh() START - get...");
+    let maybe_record = get(ah, GetOptions::content())?;
+    let Some(record) = maybe_record else {
+        warn!("ah_to_eh() END - Record not found");
+        return zome_error!("ah_to_eh(): Record not found");
+    };
+    trace!("ah_to_eh() END - Record found");
+    return record_to_eh(&record);
+}
+pub fn record_to_eh(record: &Record) -> ExternResult<EntryHash> {
+    let maybe_eh = record.action().entry_hash();
+    if maybe_eh.is_none() {
+        warn!("record_to_eh(): entry_hash not found");
+        return Err(wasm_error!(WasmErrorInner::Guest(format!(
+            "record_to_eh(): entry_hash not found"
+        ))));
+    }
+    Ok(maybe_eh.unwrap().clone())
+}
+
+pub type TypedEntryAndHash<T> = (T, ActionHash, EntryHash);
+pub type OptionTypedEntryAndHash<T> = Option<TypedEntryAndHash<T>>;
+pub fn get_latest_typed_from_eh<T: TryFrom<SerializedBytes, Error = SerializedBytesError>>(
+    entry_hash: EntryHash,
+) -> ExternResult<OptionTypedEntryAndHash<T>> {
+    // First, make sure we DO have the latest action_hash address
+    let maybe_maybe_details = get_details(entry_hash.clone(), GetOptions::latest())?;
+    let Some(Details::Entry(details)) = maybe_maybe_details else {
+        return Ok(None);
+    };
+    if details.entry_dht_status != metadata::EntryDhtStatus::Live {
+        return Ok(None);
+    }
+    let latest_ah = match details.updates.len() {
+        // pass out the action associated with this entry
+        0 => sah_to_ah(details.actions.first().unwrap().to_owned()),
+        _ => {
+            let mut sortlist = details.updates.to_vec();
+            // unix timestamp should work for sorting
+            sortlist.sort_by_key(|update| update.action().timestamp().as_micros());
+            // sorts in ascending order, so take the last Record
+            let last = sortlist.last().unwrap().to_owned();
+            sah_to_ah(last)
+        }
+    };
+    // Second, go and get that Record, and return its entry and action_address
+    let Some(record) = get(latest_ah, GetOptions::latest())? else {
+        return Ok(None);
+    };
+    let maybe_maybe_typed_entry = record.entry().to_app_option::<T>();
+    if let Err(e) = maybe_maybe_typed_entry {
+        return Err(wasm_error!(WasmErrorInner::Serialize(e)));
+    }
+    let Some(typed_entry) = maybe_maybe_typed_entry.unwrap() else {
+        return Ok(None);
+    };
+    let ah = match record.action() {
+        // we DO want to return the action for the original instead of the updated
+        Action::Update(update) => update.original_action_address.clone(),
+        Action::Create(_) => record.action_address().clone(),
+        _ => unreachable!("Can't have returned a action for a nonexistent entry"),
+    };
+    let eh = record.action().entry_hash().unwrap().to_owned();
+    // Done
+    Ok(Some((typed_entry, ah, eh)))
+}
+pub fn sah_to_ah(sah: SignedActionHashed) -> ActionHash {
+    sah.as_hash().to_owned()
 }
 
 #[hdk_extern]
@@ -347,6 +438,14 @@ pub fn update_encrypted_content(
 
     // TODO: create time link. get rid of default links and update links?
     let record = get_encrypted_content(updated_encrypted_content_hash.clone())?;
+
+    // temp solution while waiting for pub/sub to be implemented. this will alert
+    // all agents in all hives for every entry created across the network
+    emit_signal(EncryptedContentSignal {
+        action_type: EncryptedContentSignalType::Update,
+        data: record.clone(),
+    })?;
+
     Ok(record)
 }
 
@@ -354,6 +453,14 @@ pub fn update_encrypted_content(
 pub fn delete_encrypted_content(
     original_encrypted_content_hash: ActionHash,
 ) -> ExternResult<ActionHash> {
-    delete_entry(original_encrypted_content_hash)
+    let record = get_encrypted_content(original_encrypted_content_hash.clone())?;
+    let ah = delete_entry(original_encrypted_content_hash)?;
+    // temp solution while waiting for pub/sub to be implemented. this will alert
+    // all agents in all hives for every entry created across the network
+    emit_signal(EncryptedContentSignal {
+        action_type: EncryptedContentSignalType::Delete,
+        data: record,
+    })?;
     // TODO: delete links
+    Ok(ah)
 }
