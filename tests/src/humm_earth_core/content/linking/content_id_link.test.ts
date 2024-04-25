@@ -1,6 +1,6 @@
 import { assert, expect, test } from "vitest";
 
-import { runScenario, pause, CallableCell } from "@holochain/tryorama";
+import { runScenario, dhtSync, CallableCell } from "@holochain/tryorama";
 import {
   NewEntryAction,
   ActionHash,
@@ -48,7 +48,7 @@ test("create and read EncryptedContent using content id link", async () => {
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
-    await pause(1200);
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
     // Bob gets the created EncryptedContent
     const listInput = {
@@ -94,7 +94,7 @@ test("create, update, and read EncryptedContent using hive link", async () => {
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
-    await pause(1200);
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
     // Bob gets the created EncryptedContent
     const listInput = {
@@ -128,7 +128,7 @@ test("create, update, and read EncryptedContent using hive link", async () => {
     assert.ok(updatedRecord);
 
     // Wait for the updated entry to be propagated to the other node.
-    await pause(1200);
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
     // Bob gets the updated EncryptedContent
     const readOutput2: EncryptedContentResponse = await bob.cells[0].callZome({

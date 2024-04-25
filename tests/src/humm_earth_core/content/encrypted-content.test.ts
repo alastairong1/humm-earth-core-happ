@@ -1,6 +1,6 @@
 import { assert, expect, test } from "vitest";
 
-import { runScenario, pause, CallableCell } from "@holochain/tryorama";
+import { runScenario, dhtSync, CallableCell } from "@holochain/tryorama";
 import {
   NewEntryAction,
   ActionHash,
@@ -21,72 +21,72 @@ import {
   sampleEncryptedContent,
 } from "./common.js";
 
-// test("create EncryptedContent", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0]);
-//     assert.ok(record);
-//   });
-// });
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
+  });
+});
 
-// test("create and read EncryptedContent", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create and read EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     const sampleContent = sampleEncryptedContent();
-//     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
+    const sampleContent = sampleEncryptedContent();
+    const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0], sampleInput);
-//     assert.ok(record);
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0], sampleInput);
+    assert.ok(record);
 
-//     // Wait for the created entry to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the created entry to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob gets the created EncryptedContent
-//     const createReadOutput: EncryptedContentResponse =
-//       await bob.cells[0].callZome({
-//         zome_name: "content",
-//         fn_name: "get_encrypted_content",
-//         payload: record.hash,
-//       });
-//     assert.deepEqual(sampleContent, createReadOutput.encrypted_content);
-//   });
-// });
+    // Bob gets the created EncryptedContent
+    const createReadOutput: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(sampleContent, createReadOutput.encrypted_content);
+  });
+});
 
 test("create and read EncryptedContent by author link", async () => {
   await runScenario(async (scenario) => {
@@ -116,7 +116,7 @@ test("create and read EncryptedContent by author link", async () => {
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
-    await pause(1200);
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
     // Bob gets the created EncryptedContent
     console.log(encodeHashToBase64(alice.agentPubKey));
@@ -135,310 +135,310 @@ test("create and read EncryptedContent by author link", async () => {
   });
 });
 
-// test("create and update EncryptedContent", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create and update EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0]);
-//     assert.ok(record);
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
 
-//     const originalActionHash = record.hash;
+    const originalActionHash = record.hash;
 
-//     // Alice updates the EncryptedContent
-//     const contentUpdate = sampleEncryptedContent({
-//       bytes: Buffer.from("test-bytes-2"),
-//     });
-//     let updateInput = {
-//       previous_encrypted_content_hash: originalActionHash,
-//       updated_encrypted_content: contentUpdate,
-//     };
+    // Alice updates the EncryptedContent
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
+    let updateInput = {
+      previous_encrypted_content_hash: originalActionHash,
+      updated_encrypted_content: contentUpdate,
+    };
 
-//     let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
-//       {
-//         zome_name: "content",
-//         fn_name: "update_encrypted_content",
-//         payload: updateInput,
-//       }
-//     );
-//     assert.ok(updatedRecord);
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
+    assert.ok(updatedRecord);
 
-//     // Wait for the updated entry to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the updated entry to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob gets the updated EncryptedContent
-//     const readUpdatedOutput0: EncryptedContentResponse =
-//       await bob.cells[0].callZome({
-//         zome_name: "content",
-//         fn_name: "get_encrypted_content",
-//         payload: originalActionHash,
-//       });
-//     assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: originalActionHash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
 
-//     // Alice updates the EncryptedContent again
-//     const contentUpdate2 = sampleEncryptedContent({
-//       bytes: Buffer.from("test-bytes-3"),
-//     });
+    // Alice updates the EncryptedContent again
+    const contentUpdate2 = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-3"),
+    });
 
-//     updateInput = {
-//       previous_encrypted_content_hash: updatedRecord.hash,
-//       updated_encrypted_content: contentUpdate2,
-//     };
+    updateInput = {
+      previous_encrypted_content_hash: updatedRecord.hash,
+      updated_encrypted_content: contentUpdate2,
+    };
 
-//     updatedRecord = await alice.cells[0].callZome({
-//       zome_name: "content",
-//       fn_name: "update_encrypted_content",
-//       payload: updateInput,
-//     });
-//     assert.ok(updatedRecord);
+    updatedRecord = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "update_encrypted_content",
+      payload: updateInput,
+    });
+    assert.ok(updatedRecord);
 
-//     // Wait for the updated entry to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the updated entry to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob gets the updated EncryptedContent
-//     const readUpdatedOutput1: EncryptedContentResponse =
-//       await bob.cells[0].callZome({
-//         zome_name: "content",
-//         fn_name: "get_encrypted_content",
-//         payload: originalActionHash,
-//       });
-//     assert.deepEqual(contentUpdate2, readUpdatedOutput1.encrypted_content);
-//   });
-// });
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput1: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: originalActionHash,
+      });
+    assert.deepEqual(contentUpdate2, readUpdatedOutput1.encrypted_content);
+  });
+});
 
-// test("create and delete EncryptedContent", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create and delete EncryptedContent", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0]);
-//     assert.ok(record);
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
 
-//     // Alice deletes the EncryptedContent
-//     const deleteActionHash = await alice.cells[0].callZome({
-//       zome_name: "content",
-//       fn_name: "delete_encrypted_content",
-//       payload: record.hash,
-//     });
-//     assert.ok(deleteActionHash);
+    // Alice deletes the EncryptedContent
+    const deleteActionHash = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "delete_encrypted_content",
+      payload: record.hash,
+    });
+    assert.ok(deleteActionHash);
 
-//     // Wait for the entry deletion to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the entry deletion to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob tries to get the deleted EncryptedContent
-//     await expect(
-//       async () =>
-//         await bob.cells[0].callZome({
-//           zome_name: "content",
-//           fn_name: "get_encrypted_content",
-//           payload: record.hash,
-//         })
-//     ).rejects.toThrow();
-//   });
-// });
+    // Bob tries to get the deleted EncryptedContent
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
+  });
+});
 
-// test("create, update, and delete EncryptedContent using original hash", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create, update, and delete EncryptedContent using original hash", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0]);
-//     assert.ok(record);
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
 
-//     // Alice updates the EncryptedContent
-//     const contentUpdate = sampleEncryptedContent({
-//       bytes: Buffer.from("test-bytes-2"),
-//     });
-//     let updateInput = {
-//       previous_encrypted_content_hash: record.hash,
-//       updated_encrypted_content: contentUpdate,
-//     };
+    // Alice updates the EncryptedContent
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
+    let updateInput = {
+      previous_encrypted_content_hash: record.hash,
+      updated_encrypted_content: contentUpdate,
+    };
 
-//     let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
-//       {
-//         zome_name: "content",
-//         fn_name: "update_encrypted_content",
-//         payload: updateInput,
-//       }
-//     );
-//     assert.ok(updatedRecord);
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
+    assert.ok(updatedRecord);
 
-//     // Wait for the updated entry to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the updated entry to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob gets the updated EncryptedContent
-//     const readUpdatedOutput0: EncryptedContentResponse =
-//       await bob.cells[0].callZome({
-//         zome_name: "content",
-//         fn_name: "get_encrypted_content",
-//         payload: record.hash,
-//       });
-//     assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
 
-//     // Alice deletes the EncryptedContent
-//     const deleteActionHash = await alice.cells[0].callZome({
-//       zome_name: "content",
-//       fn_name: "delete_encrypted_content",
-//       payload: record.hash,
-//     });
-//     assert.ok(deleteActionHash);
+    // Alice deletes the EncryptedContent
+    const deleteActionHash = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "delete_encrypted_content",
+      payload: record.hash,
+    });
+    assert.ok(deleteActionHash);
 
-//     // Wait for the entry deletion to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the entry deletion to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob tries to get the deleted EncryptedContent using the original hash
-//     await expect(
-//       async () =>
-//         await bob.cells[0].callZome({
-//           zome_name: "content",
-//           fn_name: "get_encrypted_content",
-//           payload: record.hash,
-//         })
-//     ).rejects.toThrow();
+    // Bob tries to get the deleted EncryptedContent using the original hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
 
-//     // Bob tries to get the deleted EncryptedContent using the updated hash
-//     await expect(
-//       async () =>
-//         await bob.cells[0].callZome({
-//           zome_name: "content",
-//           fn_name: "get_encrypted_content",
-//           payload: readUpdatedOutput0.hash,
-//         })
-//     ).rejects.toThrow();
-//   });
-// });
+    // Bob tries to get the deleted EncryptedContent using the updated hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: readUpdatedOutput0.hash,
+        })
+    ).rejects.toThrow();
+  });
+});
 
-// test("create, update, and delete EncryptedContent using updated hash", async () => {
-//   await runScenario(async (scenario) => {
-//     // Construct proper paths for your app.
-//     // This assumes app bundle created by the `hc app pack` command.
-//     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
+test("create, update, and delete EncryptedContent using updated hash", async () => {
+  await runScenario(async (scenario) => {
+    // Construct proper paths for your app.
+    // This assumes app bundle created by the `hc app pack` command.
+    const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
-//     // Set up the app to be installed
-//     const appSource = { appBundleSource: { path: testAppPath } };
+    // Set up the app to be installed
+    const appSource = { appBundleSource: { path: testAppPath } };
 
-//     // Add 2 players with the test app to the Scenario. The returned players
-//     // can be destructured.
-//     const [alice, bob] = await scenario.addPlayersWithApps([
-//       appSource,
-//       appSource,
-//     ]);
+    // Add 2 players with the test app to the Scenario. The returned players
+    // can be destructured.
+    const [alice, bob] = await scenario.addPlayersWithApps([
+      appSource,
+      appSource,
+    ]);
 
-//     // Shortcut peer discovery through gossip and register all agents in every
-//     // conductor of the scenario.
-//     await scenario.shareAllAgents();
+    // Shortcut peer discovery through gossip and register all agents in every
+    // conductor of the scenario.
+    await scenario.shareAllAgents();
 
-//     // Alice creates a EncryptedContent
-//     const record = await createEncryptedContent(alice.cells[0]);
-//     assert.ok(record);
+    // Alice creates a EncryptedContent
+    const record = await createEncryptedContent(alice.cells[0]);
+    assert.ok(record);
 
-//     // Alice updates the EncryptedContent
-//     const contentUpdate = sampleEncryptedContent({
-//       bytes: Buffer.from("test-bytes-2"),
-//     });
-//     let updateInput = {
-//       previous_encrypted_content_hash: record.hash,
-//       updated_encrypted_content: contentUpdate,
-//     };
+    // Alice updates the EncryptedContent
+    const contentUpdate = sampleEncryptedContent({
+      bytes: Buffer.from("test-bytes-2"),
+    });
+    let updateInput = {
+      previous_encrypted_content_hash: record.hash,
+      updated_encrypted_content: contentUpdate,
+    };
 
-//     let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
-//       {
-//         zome_name: "content",
-//         fn_name: "update_encrypted_content",
-//         payload: updateInput,
-//       }
-//     );
-//     assert.ok(updatedRecord);
+    let updatedRecord: EncryptedContentResponse = await alice.cells[0].callZome(
+      {
+        zome_name: "content",
+        fn_name: "update_encrypted_content",
+        payload: updateInput,
+      }
+    );
+    assert.ok(updatedRecord);
 
-//     // Wait for the updated entry to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the updated entry to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob gets the updated EncryptedContent
-//     const readUpdatedOutput0: EncryptedContentResponse =
-//       await bob.cells[0].callZome({
-//         zome_name: "content",
-//         fn_name: "get_encrypted_content",
-//         payload: record.hash,
-//       });
-//     assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
+    // Bob gets the updated EncryptedContent
+    const readUpdatedOutput0: EncryptedContentResponse =
+      await bob.cells[0].callZome({
+        zome_name: "content",
+        fn_name: "get_encrypted_content",
+        payload: record.hash,
+      });
+    assert.deepEqual(contentUpdate, readUpdatedOutput0.encrypted_content);
 
-//     // Alice deletes the EncryptedContent
-//     const deleteActionHash = await alice.cells[0].callZome({
-//       zome_name: "content",
-//       fn_name: "delete_encrypted_content",
-//       payload: readUpdatedOutput0.hash,
-//     });
-//     assert.ok(deleteActionHash);
+    // Alice deletes the EncryptedContent
+    const deleteActionHash = await alice.cells[0].callZome({
+      zome_name: "content",
+      fn_name: "delete_encrypted_content",
+      payload: readUpdatedOutput0.hash,
+    });
+    assert.ok(deleteActionHash);
 
-//     // Wait for the entry deletion to be propagated to the other node.
-//     await pause(1200);
+    // Wait for the entry deletion to be propagated to the other node.
+    dhtSync([alice, bob], alice.cells[0].cell_id[0]);
 
-//     // Bob tries to get the deleted EncryptedContent using the original hash
-//     await expect(
-//       async () =>
-//         await bob.cells[0].callZome({
-//           zome_name: "content",
-//           fn_name: "get_encrypted_content",
-//           payload: record.hash,
-//         })
-//     ).rejects.toThrow();
+    // Bob tries to get the deleted EncryptedContent using the original hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: record.hash,
+        })
+    ).rejects.toThrow();
 
-//     // Bob tries to get the deleted EncryptedContent using the updated hash
-//     await expect(
-//       async () =>
-//         await bob.cells[0].callZome({
-//           zome_name: "content",
-//           fn_name: "get_encrypted_content",
-//           payload: readUpdatedOutput0.hash,
-//         })
-//     ).rejects.toThrow();
-//   });
-// });
+    // Bob tries to get the deleted EncryptedContent using the updated hash
+    await expect(
+      async () =>
+        await bob.cells[0].callZome({
+          zome_name: "content",
+          fn_name: "get_encrypted_content",
+          payload: readUpdatedOutput0.hash,
+        })
+    ).rejects.toThrow();
+  });
+});

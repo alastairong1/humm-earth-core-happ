@@ -1,11 +1,14 @@
 use content_integrity::*;
-use hdk::{hash_path::path::Component, prelude::*};
-use zome_utils::*;
+use hdk::prelude::*;
+// use zome_utils::{get_eh, get_latest_typed_from_eh};
+// use zome_utils::*;
 
 use crate::{
-    dynamic_links::create_dynamic_links, hive_link::create_hive_link,
-    humm_content_id_link::create_humm_content_id_link, linking::acl_links::create_acl_links,
-    time_indexed_links::*,
+    dynamic_links::create_dynamic_links,
+    hive_link::create_hive_link,
+    humm_content_id_link::create_humm_content_id_link,
+    linking::acl_links::create_acl_links,
+    // time_indexed_links::*,
 };
 
 #[hdk_entry_helper]
@@ -115,7 +118,7 @@ pub fn create_encrypted_content(
     }
 
     // time indexing links
-    time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type)?;
+    // time_index_encrypted_content(action_hash.clone(), &encrypted_content.header.content_type)?;
 
     Ok(response)
 }
@@ -136,13 +139,15 @@ pub fn get_encrypted_content(content_hash: ActionHash) -> ExternResult<Encrypted
 }
 
 /// copied from https://github.com/ddd-mtl/zome-utils/blob/main/src/get.rs while
-/// waiting for the zome-utils to be updated for latest 0.2.7-beta
+/// waiting for the zome-utils to be updated for latest 0.3.0-beta
 pub fn get_eh(ah: ActionHash) -> ExternResult<EntryHash> {
     trace!("ah_to_eh() START - get...");
-    let maybe_record = get(ah, GetOptions::content())?;
+    let maybe_record = get(ah, GetOptions::network())?;
     let Some(record) = maybe_record else {
         warn!("ah_to_eh() END - Record not found");
-        return zome_error!("ah_to_eh(): Record not found");
+        return Err(wasm_error!(WasmErrorInner::Guest(format!(
+            "ah_to_eh(): Record not found"
+        ))));
     };
     trace!("ah_to_eh() END - Record found");
     return record_to_eh(&record);
@@ -164,11 +169,11 @@ pub fn get_latest_typed_from_eh<T: TryFrom<SerializedBytes, Error = SerializedBy
     entry_hash: EntryHash,
 ) -> ExternResult<OptionTypedEntryAndHash<T>> {
     // First, make sure we DO have the latest action_hash address
-    let maybe_maybe_details = get_details(entry_hash.clone(), GetOptions::latest())?;
+    let maybe_maybe_details = get_details(entry_hash.clone(), GetOptions::network())?;
     let Some(Details::Entry(details)) = maybe_maybe_details else {
         return Ok(None);
     };
-    if details.entry_dht_status != metadata::EntryDhtStatus::Live {
+    if details.entry_dht_status != EntryDhtStatus::Live {
         return Ok(None);
     }
     let latest_ah = match details.updates.len() {
@@ -184,7 +189,7 @@ pub fn get_latest_typed_from_eh<T: TryFrom<SerializedBytes, Error = SerializedBy
         }
     };
     // Second, go and get that Record, and return its entry and action_address
-    let Some(record) = get(latest_ah, GetOptions::latest())? else {
+    let Some(record) = get(latest_ah, GetOptions::network())? else {
         return Ok(None);
     };
     let maybe_maybe_typed_entry = record.entry().to_app_option::<T>();
@@ -231,20 +236,21 @@ pub struct GetEncryptedContentByTimeAndAuthorInput {
 pub fn get_encrypted_content_by_time_and_author(
     input: GetEncryptedContentByTimeAndAuthorInput,
 ) -> ExternResult<Vec<EncryptedContentResponse>> {
-    let res = get_encrypted_content_time_index_links(
-        input.author,
-        &input.content_type,
-        input.start_time,
-        input.end_time,
-        input.limit,
-    )?;
-    let hashes: Vec<ActionHash> = res
-        .1
-        .into_iter()
-        .map(|(_, link)| link.target.into_action_hash())
-        .filter_map(|x| x)
-        .collect();
-    get_many_encrypted_content(hashes)
+    Ok(vec![])
+    // let res = get_encrypted_content_time_index_links(
+    //     input.author,
+    //     &input.content_type,
+    //     input.start_time,
+    //     input.end_time,
+    //     input.limit,
+    // )?;
+    // let hashes: Vec<ActionHash> = res
+    //     .1
+    //     .into_iter()
+    //     .map(|(_, link)| link.target.into_action_hash())
+    //     .filter_map(|x| x)
+    //     .collect();
+    // get_many_encrypted_content(hashes)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -263,7 +269,9 @@ pub fn list_by_dynamic_link(
         Component::from(input.content_type),
         Component::from(input.dynamic_link.clone()),
     ]);
-    let links = get_links(path.path_entry_hash()?, LinkTypes::Dynamic, None)?;
+    let links = get_links(
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Dynamic)?.build(),
+    )?;
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -285,7 +293,9 @@ pub fn list_by_hive_link(input: ListByHiveInput) -> ExternResult<Vec<EncryptedCo
         Component::from(input.content_type),
     ]);
 
-    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
+    let links = get_links(
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Hive)?.build(),
+    )?;
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -309,7 +319,9 @@ pub fn get_by_content_id_link(
         Component::from(input.content_id.clone()),
     ]);
 
-    let links = get_links(path.path_entry_hash()?, LinkTypes::HummContentId, None)?;
+    let links = get_links(
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentId)?.build(),
+    )?;
 
     let hashes: Vec<ActionHash> = links
         .into_iter()
@@ -350,10 +362,22 @@ pub fn list_by_acl_link(input: ListByAclInput) -> ExternResult<Vec<EncryptedCont
         Component::from(input.entity_id.clone()),
     ]);
     let links = match input.acl_role.as_str() {
-        "Owner" => get_links(path.path_entry_hash()?, LinkTypes::HummContentOwner, None)?,
-        "Admin" => get_links(path.path_entry_hash()?, LinkTypes::HummContentAdmin, None)?,
-        "Writer" => get_links(path.path_entry_hash()?, LinkTypes::HummContentWriter, None)?,
-        "Reader" => get_links(path.path_entry_hash()?, LinkTypes::HummContentReader, None)?,
+        "Owner" => get_links(
+            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentOwner)?
+                .build(),
+        )?,
+        "Admin" => get_links(
+            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentAdmin)?
+                .build(),
+        )?,
+        "Writer" => get_links(
+            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentWriter)?
+                .build(),
+        )?,
+        "Reader" => get_links(
+            GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentReader)?
+                .build(),
+        )?,
         _ => {
             return Err(wasm_error!(WasmErrorInner::Guest(String::from(
                 "Invalid acl_role"
@@ -381,7 +405,9 @@ pub fn list_by_author(input: ListByAuthorInput) -> ExternResult<Vec<EncryptedCon
         Component::from(input.content_type),
     ]);
 
-    let links = get_links(path.path_entry_hash()?, LinkTypes::Hive, None)?;
+    let links = get_links(
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Hive)?.build(),
+    )?;
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -406,9 +432,11 @@ pub fn update_encrypted_content(
         &input.updated_encrypted_content,
     )?;
     let original_hash_link = get_links(
-        input.previous_encrypted_content_hash.clone(),
-        LinkTypes::OriginalHashPointer,
-        None,
+        GetLinksInputBuilder::try_new(
+            input.previous_encrypted_content_hash.clone(),
+            LinkTypes::OriginalHashPointer,
+        )?
+        .build(),
     )?;
     if original_hash_link.is_empty() {
         return Err(wasm_error!(WasmErrorInner::Guest(format!(
