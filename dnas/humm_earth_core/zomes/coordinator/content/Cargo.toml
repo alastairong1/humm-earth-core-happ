@@ -2,6 +2,7 @@
 name = "content"
 version = "0.0.1"
 edition = "2021"
+resolver = "2"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -9,7 +10,6 @@ name = "content"
 
 [dependencies]
 hdk = { workspace = true }
-holochain_integrity_types = { workspace = true }
 
 serde = { workspace = true }
 

@@ -54,18 +54,16 @@ test("create and read EncryptedContent", async () => {
     const testAppPath = process.cwd() + "/../workdir/humm-earth-core-happ.happ";
 
     // Set up the app to be installed
-    const appSource = { appBundleSource: { path: testAppPath } };
+    const appBundleSource: AppBundleSource = {
+      path: testAppPath,
+    };
 
     // Add 2 players with the test app to the Scenario. The returned players
     // can be destructured.
     const [alice, bob] = await scenario.addPlayersWithApps([
-      appSource,
-      appSource,
+      { appBundleSource },
+      { appBundleSource },
     ]);
-
-    // Shortcut peer discovery through gossip and register all agents in every
-    // conductor of the scenario.
-    await scenario.shareAllAgents();
 
     const sampleContent = sampleEncryptedContent();
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
@@ -76,6 +74,8 @@ test("create and read EncryptedContent", async () => {
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
     const createReadOutput: EncryptedContentResponse =
@@ -117,9 +117,10 @@ test("create and read EncryptedContent by author link", async () => {
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
-    console.log(encodeHashToBase64(alice.agentPubKey));
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
         zome_name: "content",
@@ -129,8 +130,6 @@ test("create and read EncryptedContent by author link", async () => {
           content_type: sampleContent.header.content_type,
         },
       });
-    console.log(sampleContent);
-    console.log(createReadOutput[0].encrypted_content);
     assert.deepEqual(sampleContent, createReadOutput[0].encrypted_content);
   });
 });
@@ -181,6 +180,8 @@ test("create and update EncryptedContent", async () => {
 
     // Wait for the updated entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput0: EncryptedContentResponse =
@@ -210,6 +211,8 @@ test("create and update EncryptedContent", async () => {
 
     // Wait for the updated entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput1: EncryptedContentResponse =
@@ -256,6 +259,8 @@ test("create and delete EncryptedContent", async () => {
 
     // Wait for the entry deletion to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob tries to get the deleted EncryptedContent
     await expect(
@@ -313,6 +318,8 @@ test("create, update, and delete EncryptedContent using original hash", async ()
 
     // Wait for the updated entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput0: EncryptedContentResponse =
@@ -333,6 +340,8 @@ test("create, update, and delete EncryptedContent using original hash", async ()
 
     // Wait for the entry deletion to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob tries to get the deleted EncryptedContent using the original hash
     await expect(
@@ -400,6 +409,8 @@ test("create, update, and delete EncryptedContent using updated hash", async () 
 
     // Wait for the updated entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the updated EncryptedContent
     const readUpdatedOutput0: EncryptedContentResponse =
@@ -420,6 +431,8 @@ test("create, update, and delete EncryptedContent using updated hash", async () 
 
     // Wait for the entry deletion to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob tries to get the deleted EncryptedContent using the original hash
     await expect(

@@ -9,6 +9,7 @@ import {
   fakeEntryHash,
   fakeDnaHash,
 } from "@holochain/client";
+import { decode } from "@msgpack/msgpack";
 
 export type EncryptedContentResponse = {
   encrypted_content: any;
@@ -24,10 +25,7 @@ export enum AclRole {
 
 export function sampleAcl() {
   return {
-    owner: {
-      id: "test-entity-acl-id",
-      entity_type: "test-entity-acl-type",
-    },
+    owner: "test-entity-acl-id",
     admin: [],
     writer: [],
     reader: [],
@@ -42,6 +40,8 @@ export function sampleEncryptedContent(partialEncryptedContent = {}) {
       id: "test-id",
       hive_id: "test-hive-id",
       content_type: "test-content-type",
+      revision_author_signing_public_key:
+        "test-revision-author-signing-public-key",
       acl: sampleAcl(),
       public_key_acl: {
         owner: "test-entity-acl-public-key",
@@ -63,6 +63,8 @@ export async function sampleCreateEncryptedContentInput(
     id: sample.header.id,
     hive_id: sample.header.hive_id,
     content_type: sample.header.content_type,
+    revision_author_signing_public_key:
+      sample.header.revision_author_signing_public_key,
     bytes: sample.bytes,
     acl: sample.header.acl,
     public_key_acl: sample.header.public_key_acl,
@@ -76,6 +78,7 @@ export async function createEncryptedContent(
 ): Promise<EncryptedContentResponse> {
   const content =
     createEncryptedContentInput || (await sampleCreateEncryptedContentInput());
+
   return cell.callZome({
     zome_name: "content",
     fn_name: "create_encrypted_content",

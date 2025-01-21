@@ -60,38 +60,29 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             },
             _ => Ok(ValidateCallbackResult::Valid),
         },
+        // TODO
         FlatOp::RegisterUpdate(update_entry) => match update_entry {
-            OpUpdate::Entry {
-                original_action,
-                original_app_entry,
-                app_entry,
-                action,
-            } => match (app_entry, original_app_entry) {
-                (
-                    EntryTypes::EncryptedContent(encrypted_content),
-                    EntryTypes::EncryptedContent(original_encrypted_content),
-                ) => validate_update_encrypted_content(
-                    action,
-                    encrypted_content,
-                    original_action,
-                    original_encrypted_content,
-                ),
-                _ => Ok(ValidateCallbackResult::Invalid(
-                    "Original and updated entry types must be the same".to_string(),
-                )),
-            },
+            // OpUpdate::Entry { app_entry, action } => match (app_entry, action) {
+            //     (EntryTypes::EncryptedContent(encrypted_content), Update::Update(action)) => {
+            //         validate_update_encrypted_content(action, app_entry)
+            //     }
+            //     _ => Ok(ValidateCallbackResult::Invalid(
+            //         "Original and updated entry types must be the same".to_string(),
+            //     )),
+            // },
             _ => Ok(ValidateCallbackResult::Valid),
         },
+        // TODO
         FlatOp::RegisterDelete(delete_entry) => match delete_entry {
-            OpDelete::Entry {
-                original_action,
-                original_app_entry,
-                action,
-            } => match original_app_entry {
-                EntryTypes::EncryptedContent(encrypted_content) => {
-                    validate_delete_encrypted_content(action, original_action, encrypted_content)
-                }
-            },
+            // OpDelete::Entry {
+            //     original_action,
+            //     original_app_entry,
+            //     action,
+            // } => match original_app_entry {
+            //     EntryTypes::EncryptedContent(encrypted_content) => {
+            //         validate_delete_encrypted_content(action, original_action, encrypted_content)
+            //     }
+            // },
             _ => Ok(ValidateCallbackResult::Valid),
         },
         FlatOp::RegisterCreateLink {

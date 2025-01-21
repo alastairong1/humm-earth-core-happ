@@ -141,16 +141,22 @@ pub fn get_encrypted_content(content_hash: ActionHash) -> ExternResult<Encrypted
 /// copied from https://github.com/ddd-mtl/zome-utils/blob/main/src/get.rs while
 /// waiting for the zome-utils to be updated for latest 0.3.0-beta
 pub fn get_eh(ah: ActionHash) -> ExternResult<EntryHash> {
-    trace!("ah_to_eh() START - get...");
-    let maybe_record = get(ah, GetOptions::network())?;
-    let Some(record) = maybe_record else {
-        warn!("ah_to_eh() END - Record not found");
+    let record = get_record(AnyDhtHash::from(ah))?;
+    let Some(eh) = record.action().entry_hash() else {
         return Err(wasm_error!(WasmErrorInner::Guest(format!(
             "ah_to_eh(): Record not found"
         ))));
     };
-    trace!("ah_to_eh() END - Record found");
-    return record_to_eh(&record);
+    Ok(eh.to_owned())
+}
+pub fn get_record(dh: AnyDhtHash) -> ExternResult<Record> {
+    let maybe_record = get(dh, GetOptions::network())?;
+    let Some(record) = maybe_record else {
+        return Err(wasm_error!(WasmErrorInner::Guest(format!(
+            "no Record found at given hash"
+        ))));
+    };
+    Ok(record)
 }
 pub fn record_to_eh(record: &Record) -> ExternResult<EntryHash> {
     let maybe_eh = record.action().entry_hash();
