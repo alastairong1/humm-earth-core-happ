@@ -94,10 +94,8 @@ test("create and read EncryptedContent using acl admin link", async () => {
     const sampleContent = sampleEncryptedContent();
     sampleContent.header.acl.admin.push("test-admin-id");
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
-    console.log(sampleInput);
     const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
-    console.log(record);
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
@@ -111,14 +109,12 @@ test("create and read EncryptedContent using acl admin link", async () => {
       acl_role: AclRole.Admin,
       entity_id: sampleContent.header.acl.admin[0],
     };
-    console.log(listInput);
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
         zome_name: "content",
         fn_name: "list_by_acl_link",
         payload: listInput,
       });
-    console.log(createReadOutput);
 
     assert.deepEqual(sampleContent, createReadOutput[0].encrypted_content);
   });
@@ -169,7 +165,6 @@ test("create and read EncryptedContent using acl writer link", async () => {
         fn_name: "list_by_acl_link",
         payload: listInput,
       });
-    console.log(createReadOutput);
 
     assert.deepEqual(sampleContent, createReadOutput[0].encrypted_content);
   });

@@ -43,7 +43,6 @@ test("create and read EncryptedContent using content id link", async () => {
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
-    console.log(sampleInput);
     const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
 
