@@ -1,4 +1,5 @@
 use content_integrity::{EncryptedContent, LinkTypes};
+use hdi::hash_path::path::Component;
 use hdk::prelude::*;
 
 pub fn create_dynamic_links(

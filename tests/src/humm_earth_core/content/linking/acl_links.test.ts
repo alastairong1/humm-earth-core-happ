@@ -49,13 +49,15 @@ test("create and read EncryptedContent using acl owner link", async () => {
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
     const listInput = {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Owner,
-      entity_id: sampleContent.header.acl.owner.id,
+      entity_id: sampleContent.header.acl.owner,
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
@@ -90,24 +92,26 @@ test("create and read EncryptedContent using acl admin link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.acl.admin.push({
-      id: "test-admin-id",
-      entity_type: "test-entity-acl-type",
-    });
+    sampleContent.header.acl.admin.push("test-admin-id");
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
+    console.log(sampleInput);
     const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
+    console.log(record);
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
     const listInput = {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Admin,
-      entity_id: sampleContent.header.acl.admin[0].id,
+      entity_id: sampleContent.header.acl.admin[0],
     };
+    console.log(listInput);
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
         zome_name: "content",
@@ -142,23 +146,22 @@ test("create and read EncryptedContent using acl writer link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.acl.writer.push({
-      id: "test-writer-id",
-      entity_type: "test-entity-acl-type",
-    });
+    sampleContent.header.acl.writer.push("test-writer-id");
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
     const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
     const listInput = {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Writer,
-      entity_id: sampleContent.header.acl.writer[0].id,
+      entity_id: sampleContent.header.acl.writer[0],
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({
@@ -194,23 +197,22 @@ test("create and read EncryptedContent using acl reader link", async () => {
 
     // Alice creates a EncryptedContent
     const sampleContent = sampleEncryptedContent();
-    sampleContent.header.acl.reader.push({
-      id: "test-reader-id",
-      entity_type: "test-entity-acl-type",
-    });
+    sampleContent.header.acl.reader.push("test-reader-id");
     const sampleInput = await sampleCreateEncryptedContentInput(sampleContent);
     const record = await createEncryptedContent(alice.cells[0], sampleInput);
     assert.ok(record);
 
     // Wait for the created entry to be propagated to the other node.
     dhtSync([alice, bob], alice.cells[0].cell_id[0]);
+    // dhtSync doesnt work?
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     // Bob gets the created EncryptedContent
     const listInput = {
       hive_id: sampleContent.header.hive_id,
       content_type: sampleContent.header.content_type,
       acl_role: AclRole.Reader,
-      entity_id: sampleContent.header.acl.reader[0].id,
+      entity_id: sampleContent.header.acl.reader[0],
     };
     const createReadOutput: EncryptedContentResponse[] =
       await bob.cells[0].callZome({

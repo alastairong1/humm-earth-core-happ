@@ -1,6 +1,6 @@
 use content_integrity::*;
+use hdi::hash_path::path::Component;
 use hdk::prelude::*;
-// use zome_utils::{get_eh, get_latest_typed_from_eh};
 // use zome_utils::*;
 
 use crate::{
@@ -158,16 +158,6 @@ pub fn get_record(dh: AnyDhtHash) -> ExternResult<Record> {
     };
     Ok(record)
 }
-pub fn record_to_eh(record: &Record) -> ExternResult<EntryHash> {
-    let maybe_eh = record.action().entry_hash();
-    if maybe_eh.is_none() {
-        warn!("record_to_eh(): entry_hash not found");
-        return Err(wasm_error!(WasmErrorInner::Guest(format!(
-            "record_to_eh(): entry_hash not found"
-        ))));
-    }
-    Ok(maybe_eh.unwrap().clone())
-}
 
 pub type TypedEntryAndHash<T> = (T, ActionHash, EntryHash);
 pub type OptionTypedEntryAndHash<T> = Option<TypedEntryAndHash<T>>;
@@ -275,9 +265,10 @@ pub fn list_by_dynamic_link(
         Component::from(input.content_type),
         Component::from(input.dynamic_link.clone()),
     ]);
-    let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Dynamic)?.build(),
-    )?;
+
+    let get_links_input =
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Dynamic)?.build();
+    let links = get_links(get_links_input)?;
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -298,10 +289,9 @@ pub fn list_by_hive_link(input: ListByHiveInput) -> ExternResult<Vec<EncryptedCo
         Component::from(input.hive_id),
         Component::from(input.content_type),
     ]);
-
-    let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Hive)?.build(),
-    )?;
+    let get_links_input =
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Hive)?.build();
+    let links = get_links(get_links_input)?;
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -324,10 +314,9 @@ pub fn get_by_content_id_link(
         Component::from(input.hive_id.clone()),
         Component::from(input.content_id.clone()),
     ]);
-
-    let links = get_links(
-        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentId)?.build(),
-    )?;
+    let get_links_input =
+        GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentId)?.build();
+    let links = get_links(get_links_input)?;
 
     let hashes: Vec<ActionHash> = links
         .into_iter()
@@ -367,6 +356,7 @@ pub fn list_by_acl_link(input: ListByAclInput) -> ExternResult<Vec<EncryptedCont
         Component::from(input.content_type),
         Component::from(input.entity_id.clone()),
     ]);
+
     let links = match input.acl_role.as_str() {
         "Owner" => get_links(
             GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::HummContentOwner)?
@@ -410,10 +400,10 @@ pub fn list_by_author(input: ListByAuthorInput) -> ExternResult<Vec<EncryptedCon
         Component::from(input.author),
         Component::from(input.content_type),
     ]);
-
     let links = get_links(
         GetLinksInputBuilder::try_new(path.path_entry_hash()?, LinkTypes::Hive)?.build(),
     )?;
+
     let hashes: Vec<ActionHash> = links
         .into_iter()
         .map(|link| link.target.into_action_hash())
@@ -444,6 +434,7 @@ pub fn update_encrypted_content(
         )?
         .build(),
     )?;
+
     if original_hash_link.is_empty() {
         return Err(wasm_error!(WasmErrorInner::Guest(format!(
             "Could not find the hash of the original EncryptedContent that is trying to be updated"

@@ -7,7 +7,7 @@ use hdi::prelude::*;
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type")]
 #[hdk_entry_types]
-#[unit_enum(UnitEntryTypes)]
+#[unit_enum(EntryTypesUnit)]
 pub enum EntryTypes {
     EncryptedContent(EncryptedContent),
 }
@@ -70,6 +70,13 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
             //         "Original and updated entry types must be the same".to_string(),
             //     )),
             // },
+            OpUpdate::Entry { app_entry, action } => match app_entry {
+                EntryTypes::EncryptedContent(encrypted_content) => {
+                    validate_update_encrypted_content(action, encrypted_content)
+                } // _ => Ok(ValidateCallbackResult::Invalid(
+                  //     "Original and updated entry types must be the same".to_string(),
+                  // )),
+            },
             _ => Ok(ValidateCallbackResult::Valid),
         },
         // TODO
@@ -170,18 +177,9 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 action,
                 ..
             } => {
-                let original_record = must_get_valid_record(original_action_hash)?;
-                let original_action = original_record.action().clone();
-                let original_action = match original_action {
-                    Action::Create(create) => EntryCreationAction::Create(create),
-                    Action::Update(update) => EntryCreationAction::Update(update),
-                    _ => {
-                        return Ok(ValidateCallbackResult::Invalid(
-                            "Original action for an update must be a Create or Update action"
-                                .to_string(),
-                        ));
-                    }
-                };
+                // let original_record = must_get_valid_record(original_action_hash)?;
+                // let original_action = original_record.action().clone();
+
                 match app_entry {
                     EntryTypes::EncryptedContent(encrypted_content) => {
                         let result = validate_create_encrypted_content(
@@ -189,28 +187,23 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             encrypted_content.clone(),
                         )?;
                         if let ValidateCallbackResult::Valid = result {
-                            let original_encrypted_content: Option<EncryptedContent> =
-                                original_record
-                                    .entry()
-                                    .to_app_option()
-                                    .map_err(|e| wasm_error!(e))?;
-                            let original_encrypted_content = match original_encrypted_content {
-                                Some(encrypted_content) => encrypted_content,
-                                None => {
-                                    return Ok(
-                                            ValidateCallbackResult::Invalid(
-                                                "The updated entry type must be the same as the original entry type"
-                                                    .to_string(),
-                                            ),
-                                        );
-                                }
-                            };
-                            validate_update_encrypted_content(
-                                action,
-                                encrypted_content,
-                                original_action,
-                                original_encrypted_content,
-                            )
+                            // let original_encrypted_content: Option<EncryptedContent> =
+                            //     original_record
+                            //         .entry()
+                            //         .to_app_option()
+                            //         .map_err(|e| wasm_error!(e))?;
+                            // let original_encrypted_content = match original_encrypted_content {
+                            //     Some(encrypted_content) => encrypted_content,
+                            //     None => {
+                            //         return Ok(
+                            //                 ValidateCallbackResult::Invalid(
+                            //                     "The updated entry type must be the same as the original entry type"
+                            //                         .to_string(),
+                            //                 ),
+                            //             );
+                            //     }
+                            // };
+                            validate_update_encrypted_content(action, encrypted_content)
                         } else {
                             Ok(result)
                         }

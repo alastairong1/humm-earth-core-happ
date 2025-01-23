@@ -78,7 +78,6 @@ export async function createEncryptedContent(
 ): Promise<EncryptedContentResponse> {
   const content =
     createEncryptedContentInput || (await sampleCreateEncryptedContentInput());
-
   return cell.callZome({
     zome_name: "content",
     fn_name: "create_encrypted_content",

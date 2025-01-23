@@ -9,12 +9,14 @@ members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*"]
 resolver = "2"
 
 [workspace.dependencies]
-hdi = "0.4.2"
-hdk = "0.3.2"
-serde = "1.0"
+
 tauri-plugin-holochain = { git = "https://github.com/darksoil-studio/p2p-shipyard", branch = "main" }
-# time_indexing = { git = "https://github.com/ddd-mtl/time-indexing", branch = "hdk-3.0" }
-# zome_utils = { git = "https://github.com/ddd-mtl/zome-utils", branch = "hdk-3.0" }
+hdi = "=0.5.0"
+hdk = "=0.4.0"
+holochain_integrity_types = "=0.4.0"
+serde = "=1.0.203"
+# time_indexing = { git = "https://github.com/ddd-mtl/time-indexing", branch = "hdk-4.0-dev.20" }
+# zome_utils = { git = "https://github.com/ddd-mtl/zome-utils", branch = "hdk-4.0" }
 
 [workspace.dependencies.content]
 path = "dnas/humm_earth_core/zomes/coordinator/content"
